@@ -130,13 +130,6 @@ namespace StockWarden
         {
             Console.WriteLine("Displaying quotes data...");
 
-            Console.WriteLine();
-            Console.WriteLine("-------------------------------------------------");
-            PrintIfExists(quotesData, "c", "Тикер");
-            PrintIfExists(quotesData, "ltp", "Цена последней сделки");
-            PrintIfExists(quotesData, "ltt", "Время последней сделки");
-            Console.WriteLine("-------------------------------------------------");
-            Console.WriteLine();
             PrintIfExists(quotesData, "ltr", "Биржа последней сделки");
             PrintIfExists(quotesData, "name", "Название бумаги");
             PrintIfExists(quotesData, "name2", "Латинское название бумаги");
@@ -171,6 +164,13 @@ namespace StockWarden
             PrintIfExists(quotesData, "trades", "Количество сделок");
             PrintIfExists(quotesData, "min_step", "Минимальный шаг цены");
             PrintIfExists(quotesData, "step_price", "Шаг цены");
+            Console.WriteLine();
+            Console.WriteLine("-------------------------------------------------");
+            PrintIfExists(quotesData, "c", "Тикер");
+            PrintIfExists(quotesData, "ltp", "Цена последней сделки");
+            PrintIfExists(quotesData, "ltt", "Время последней сделки");
+            Console.WriteLine("-------------------------------------------------");
+            Console.WriteLine();
         }
 
         private static void PrintIfExists(Dictionary<string, JsonElement> data, string key, string label)
