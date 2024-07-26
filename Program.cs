@@ -12,6 +12,11 @@ namespace StockWarden
     {
         private static string WebSocketsURL = "wss://wss.tradernet.ru";
         static List<string> TickersToWatchChanges { get; set; }
+        static Dictionary<string, string> LastKnownTimes { get; set; } = new Dictionary<string, string>();
+        static Dictionary<string, string> LastKnownPrices { get; set; } = new Dictionary<string, string>();
+        static Dictionary<string, string> LastKnownSizes { get; set; } = new Dictionary<string, string>();
+        static Dictionary<string, string> LastKnownPercentChanges { get; set; } = new Dictionary<string, string>();
+        static Dictionary<string, string> LastKnownPointChanges { get; set; } = new Dictionary<string, string>();
 
         private static async Task ConnectWebSocketAsync(CancellationToken cancellationToken)
         {
@@ -130,7 +135,6 @@ namespace StockWarden
         {
             Console.WriteLine("Displaying quotes data...");
 
-            PrintIfExists(quotesData, "ltr", "Биржа последней сделки");
             PrintIfExists(quotesData, "name", "Название бумаги");
             PrintIfExists(quotesData, "name2", "Латинское название бумаги");
             PrintIfExists(quotesData, "bbp", "Лучший бид");
@@ -141,19 +145,13 @@ namespace StockWarden
             PrintIfExists(quotesData, "bac", "Обозначение изменения лучшего предложения");
             PrintIfExists(quotesData, "bas", "Количество (сайз) лучшего предложения");
             PrintIfExists(quotesData, "baf", "Объем лучшего предложения");
-            PrintIfExists(quotesData, "pp", "Цена предыдущего закрытия");
-            PrintIfExists(quotesData, "op", "Цена открытия в текущей торговой сессии");
-            PrintIfExists(quotesData, "lts", "Количество (сайз) последней сделки");
-            PrintIfExists(quotesData, "chg", "Изменение цены последней сделки в пунктах");
-            PrintIfExists(quotesData, "pcp", "Изменение в процентах");
             PrintIfExists(quotesData, "ltc", "Обозначение изменения цены последней сделки");
-            PrintIfExists(quotesData, "mintp", "Минимальная цена сделки за день");
-            PrintIfExists(quotesData, "maxtp", "Максимальная цена сделки за день");
             PrintIfExists(quotesData, "vol", "Объём торгов за день в штуках");
             PrintIfExists(quotesData, "vlt", "Объём торгов за день в валюте");
             PrintIfExists(quotesData, "yld", "Доходность к погашению");
             PrintIfExists(quotesData, "acd", "Накопленный купонный доход (НКД)");
             PrintIfExists(quotesData, "fv", "Номинал");
+            PrintIfExists(quotesData, "trades", "Количество сделок");
             PrintIfExists(quotesData, "mtd", "Дата погашения");
             PrintIfExists(quotesData, "cpn", "Купон в валюте");
             PrintIfExists(quotesData, "cpp", "Купонный период (в днях)");
@@ -161,14 +159,20 @@ namespace StockWarden
             PrintIfExists(quotesData, "ncp", "Дата последнего купона");
             PrintIfExists(quotesData, "dpd", "ГО покупки");
             PrintIfExists(quotesData, "dps", "ГО продажи");
-            PrintIfExists(quotesData, "trades", "Количество сделок");
             PrintIfExists(quotesData, "min_step", "Минимальный шаг цены");
             PrintIfExists(quotesData, "step_price", "Шаг цены");
+            PrintIfExists(quotesData, "ltr", "Биржа последней сделки");
+            PrintIfExists(quotesData, "op", "Цена открытия в текущей торговой сессии");
+            PrintIfExists(quotesData, "pp", "Цена предыдущего закрытия");
+            PrintIfExists(quotesData, "mintp", "Минимальная цена сделки за день");
+            PrintIfExists(quotesData, "maxtp", "Максимальная цена сделки за день");
             Console.WriteLine();
             Console.WriteLine("-------------------------------------------------");
-            PrintIfExists(quotesData, "c", "Тикер");
-            PrintIfExists(quotesData, "ltp", "Цена последней сделки");
-            PrintIfExists(quotesData, "ltt", "Время последней сделки");
+            PrintLastPrice(quotesData, "c", "Тикер", "ltp", "Цена", LastKnownPrices);
+            PrintLast(quotesData, "c", "Тикер", "lts", "Количество (сайз)", LastKnownSizes);
+            PrintLast(quotesData, "c", "Тикер", "pcp", "Изменение в процентах", LastKnownPercentChanges);
+            PrintLast(quotesData, "c", "Тикер", "chg", "Изменение в пунктах относительно цены закрытия предыдущей торговой сессии", LastKnownPointChanges);
+            PrintLast(quotesData, "c", "Тикер", "ltt", "Время", LastKnownTimes);
             Console.WriteLine("-------------------------------------------------");
             Console.WriteLine();
         }
@@ -180,7 +184,7 @@ namespace StockWarden
                 try
                 {
                     var value = data[key];
-                    Console.WriteLine($"{label}: {value}");
+                    Console.WriteLine($"{key} {label}: {value}");
                 }
                 catch (Exception ex)
                 {
@@ -189,12 +193,49 @@ namespace StockWarden
             }
         }
 
+        private static void PrintLast(Dictionary<string, JsonElement> data, string tickerKey, string tickerLabel, string valueKey, string valueLabel, Dictionary<string, string> fallbackDictionary)
+        {
+            string ticker = data.ContainsKey(tickerKey) ? data[tickerKey].ToString() : "Unknown";
+            string value = data.ContainsKey(valueKey) ? data[valueKey].ToString() : null;
+
+            if (!string.IsNullOrEmpty(value))
+            {
+                fallbackDictionary[ticker] = value;
+            }
+            else if (fallbackDictionary.ContainsKey(ticker))
+            {
+                value = fallbackDictionary[ticker];
+            }
+            else
+            {
+                value = "N/A";
+            }
+            Console.WriteLine($"{valueKey} {valueLabel}: {value}");
+        }
+
+        private static void PrintLastPrice(Dictionary<string, JsonElement> data, string tickerKey, string tickerLabel, string valueKey, string valueLabel, Dictionary<string, string> fallbackDictionary)
+        {
+            string ticker = data.ContainsKey(tickerKey) ? data[tickerKey].ToString() : "Unknown";
+            string value = data.ContainsKey(valueKey) ? data[valueKey].ToString() : null;
+
+            if (!string.IsNullOrEmpty(value))
+            {
+                fallbackDictionary[ticker] = value;
+            }
+            else if (fallbackDictionary.ContainsKey(ticker))
+            {
+                value = fallbackDictionary[ticker];
+            }
+            else
+            {
+                value = "N/A";
+            }
+            Console.WriteLine($"{tickerKey}   {tickerLabel}: {ticker}");
+            Console.WriteLine($"{valueKey} {valueLabel}: {value}");
+        }
+
         static async Task Main(string[] args)
         {
-            //string Index = "SP500.IDX";
-            //Program.TickersToWatchChanges = new List<string>();
-            //Program.TickersToWatchChanges.Add(Index);
-
             Program.TickersToWatchChanges = new List<string>();
 
             Console.WriteLine("Введите индексы нажимая enter после каждого, как только закончите, ничего не вводите и нажмите enter:");
@@ -218,7 +259,6 @@ namespace StockWarden
                     }
                 }
             }
-
             using (var cts = new CancellationTokenSource())
             {
                 Console.CancelKeyPress += (sender, e) =>
