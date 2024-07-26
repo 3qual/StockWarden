@@ -10,3 +10,9 @@
     using System.Threading;
     using System.Threading.Tasks;
     using System.Net.WebSockets;
+
+
+##### Запуск (требуется установленный пакет dotnet)
+    git clone https://github.com/3qual/stockwarden
+    cd stockwarden/
+    dotnet run
